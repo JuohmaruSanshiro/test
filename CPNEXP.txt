@@ -1,0 +1,327 @@
+*     *       RELEASE DATE=XX/XX/XX.        REVISION LEVEL=00.00      * 00000001
+*     ***************************************************************** 00000002
+*     *                  PROPRIETARY PROGRAM MATERIAL                 * 00000003
+*     *                                                               * 00000004
+*     *   THIS MATERIAL IS PROPRIETARY TO CREDIT CARD SOFTWARE, INC.  * 00000005
+*     *   AND IS NOT TO BE REPRODUCED, DISCLOSED, OR USED EXCEPT IN   * 00000006
+*     *   ACCORDANCE WITH PROGRAM LICENSE OR OTHER WRITTEN AUTHORI-   * 00000007
+*     *   ZATION OF CREDIT CARD SOFTWARE INC.                         * 00000008
+*     ***************************************************************** 00000009
+         TITLE '*** CPNEXP - EXPAND OR COMPRESS NAME AND ADDRESS ***'   00000100
+CPNEXP   AMODE ANY                                                      00000105
+CPNEXP   RMODE ANY                                                      00000110
+CPNEXP   CSECT ,                                                        00000200
+*********************************************************************** 00000300
+*  SUBROUTINE-- 'CPNEXP'                                              * 00000400
+*  AUTHOR------ SEMA GROUP ASIA PACIFIC PTE LTD                       * 00000500
+*                                                                     * 00000600
+*  FUNCTIONS--- THIS PROGRAM WILL EXPAND A VARIABLE LENGTH NAME AND   * 00000700
+*               ADDRESS OR COMPRESS A FIXED LENGTH NAME AND ADDRESS.  * 00000800
+*               IN ADDITION TO THE TYPICAL NAME AND ADDRESS DATA, TWO * 00000900
+*               LINES OF OPTIONAL USER MEMO LINE INFORMATION WILL     * 00001000
+*               ALSO BE EXPANDED OR COMPRESSED. EACH VARIABLE DATA    * 00001100
+*               NAME/ADDR/MEMO LINE WILL BE ASSIGNED A SPECIFIC CODE  * 00001200
+*               TO IDENTIFY IT.  THESE CODES ARE...                   * 00001300
+*             COMP CODE   DESCRIPTION       EXPANDED LENGTH           * 00001400
+*                 X'11' - NAME LINE 1            30                   * 00001500
+*                 X'12' - NAME LINE 1            30                   * 00001600
+*                 X'13' - NAME LINE 1            30                   * 00001700
+*                 X'21' - ADDRESS LINE 1         30                   * 00001800
+*                 X'22' - ADDRESS LINE 2         30                   * 00001900
+*                 X'23' - ADDL ADDRESS 1         30                   * 00001910
+*                 X'24' - ADDL ADDRESS 2         30                   * 00001920
+*                 X'25' - ADDL ADDRESS 3         30                   * 00001930
+*                 X'26' - ADDL CITY              30                   * 00001940
+*                 X'27' - ADDL ZIP & EXP DATE    30                   * 00001950
+*                 X'31' - CITY/STATE             30                   * 00002000
+*                 X'41' - MEMO LINE 1            55                   * 00002100
+*                 X'42' - MEMO LINE 1            55                   * 00002200
+*                                                                     * 00002300
+* REQUIREMENTS- THE USER MUST SUPPLY ONE POINTER TO REQUEST CODES,    * 00002400
+*               THE ADDRESS OF THE INPUT EXPANDED OR COMPRESSED AREA, * 00002500
+*               AND THE ADDRESS OF WHERE THE RESULT IS TO BE MOVED.   * 00002600
+*               THE TWO REQUEST CODES ARE...                          * 00002700
+*                      1) EXPAND OR COMPRESS CODE (INPUT BY USER)     * 00002800
+*                      2) RETURN CODE (RETURNED TO USER)              * 00002900
+*                                                                     * 00003000
+         EJECT                                                        * 00003100
+* COBOL EXAMPLE -                                                     * 00003200
+*---5---10---15---20---25---30---35---40---45---50---55---60---65---  * 00003300
+*                                                                     * 00003400
+*      01  CPWEXP-REQUEST-CODES.                                      * 00003500
+*          03  CPWEXP-REQUEST-CODE     PIC X(01).                     * 00003600
+*          03  CPWEXP-RETURN-CODE      PIC X(01).                     * 00003700
+*      01  CPWEXP-VARIABLE-DATA.                                      * 00003800
+*          03  CPWEXP-VARIABLE-LENGTH  PIC S9(04)      COMP.          * 00003900
+*          03  CPWEXP-VARIABLE-LINES   PIC X(466).                    * 00004000
+*      01  CPWEXP-FIXED-DATA.                                         * 00004100
+*          03  CPWEXP-FIXED-LEN        PIC S9(04)      COMP.          * 00004200
+*          03  CPWEXP-FIXED-NA.                                       * 00004300
+*              05  CPWEXP-NAME-1       PIC X(30).                     * 00004400
+*              05  CPWEXP-NAME-2       PIC X(30).                     * 00004500
+*              05  CPWEXP-NAME-3       PIC X(30).                     * 00004600
+*              05  CPWEXP-ADDR-1       PIC X(30).                     * 00004700
+*              05  CPWEXP-ADDR-2       PIC X(30).                     * 00004800
+*              05  CPWEXP-ADDL-ADDR-1  PIC X(30).                     * 00004810
+*              05  CPWEXP-ADDL-ADDR-2  PIC X(30).                     * 00004820
+*              05  CPWEXP-ADDL-ADDR-3  PIC X(30).                     * 00004830
+*              05  CPWEXP-CITY-ST      PIC X(30).                     * 00004900
+*              05  CPWEXP-MEMO-1       PIC X(55).                     * 00005000
+*              05  CPWEXP-MEMO-2       PIC X(55).                     * 00005100
+*              05  FILLER              PIC X(26).                     * 00005200
+*                                                                     * 00005300
+*     * EXPAND CUSTOMER NAME AND ADDRESS                              * 00005400
+*          MOVE 'E' TO CPWEXP-REQUEST-CODE.                           * 00005500
+*          MOVE CR-VARIABLE-DATA TO CPWEXP-VARIABLE-DATA.             * 00005600
+*          CALL 'CPNEXP' USING CPWEXP-REQUEST-CODES                   * 00005700
+*                              CPWEXP-VARIABLE-DATA                   * 00005800
+*                              CPWEXP-FIXED-DATA.                     * 00005900
+*                                                                     * 00006000
+*     * COMPRESS CUSTOMER NAME AND ADDRESS BACK                       * 00006100
+*          MOVE 'C' TO CPWEXP-REQUEST-CODE.                           * 00006200
+*          CALL 'CPNEXP' USING CPWEXP-REQUEST-CODES                   * 00006300
+*                              CPWEXP-FIXED-DATA                      * 00006400
+*                              CPWEXP-VARIABLE-DATA.                  * 00006500
+*          MOVE CPWEXP-VARIABLE-DATA TO CR-VARIABLE-DATA.             * 00006600
+*                                                                     * 00006700
+* NOTE - IF LOOKING AT A DUMP OF THE COMPRESSED AREA, YOU SHOULD      * 00006800
+*        NOTE THAT EACH LENGTH IS THE LENGTH OF THE DATA THAT FOLLOWS * 00006900
+*        AND DOES NOT INCLUDE THE LENGTH OF THE LENGTH BYTE(S) OR     * 00007000
+*        THE CODE BYTE.                                               * 00007100
+*        IE- IF ONLY ONE NAME LINE EXISTS AND IT IS 11 BYTES IN       * 00007200
+*            LENGTH, THE 2 BYTE LENGTH WILL BE 13 AND THE LENGTH      * 00007300
+*            BYTE WILL BE 11.                                         * 00007400
+*                                                                     * 00007500
+*                X'000D0B11D1D6C8D540C2C1D5D2C5D9'                    * 00007600
+*                C'        J O H N   B A N K E R '                    * 00007700
+*                                                                     * 00007800
+*********************************************************************** 00007900
+*                                                                     * 00008000
+R0       EQU   0             WORK                                       00008100
+R1       EQU   1             WORK                                       00008200
+R2       EQU   2             BASE REGISTER                              00008300
+R3       EQU   3             WORK REGISTER                              00008400
+R4       EQU   4             USER REQUEST/RETURN CODES                  00008500
+R5       EQU   5             INPUT EXPANDED/COMPRESSED N/A              00008600
+R6       EQU   6             OUTPUT EXPANDED/COMPRESSED N/A             00008700
+R7       EQU   7             WORK                                       00008800
+R8       EQU   8             WORK                                       00008900
+R9       EQU   9             WORK                                       00009000
+R10      EQU   10            WORK                                       00009100
+R11      EQU   11            WORK                                       00009200
+R12      EQU   12            WORK                                       00009300
+R13      EQU   13            SAVE REGISTER                              00009400
+R14      EQU   14            WORK/RETURN ADDRESS                        00009500
+R15      EQU   15            WORK                                       00009600
+*                                                                       00009700
+         EJECT                                                          00009800
+*********************************************************************** 00009900
+*     P  R  O  G  R  A  M    S  T  A  R  T                            * 00010000
+*********************************************************************** 00010100
+         SAVE  (14,12)             SAVE CALLER'S REGISTERS FOR          00010200
+         LR    R2,R15                RETURN AND ESTABLISH BASE REG      00010300
+         USING CPNEXP,R2                                                00010400
+         ST    R13,SAVE13                                               00010500
+*                                                                       00010600
+         LM    R4,R6,0(R1)         ESTABLISH POINTERS TO CALL PARMS     00010700
+*                                  R4 = REQUEST CODES                   00010800
+*                                  R5 = INPUT COMP/EXPANDED NA LINES    00010900
+*                                  R6 = OUTPUT COMP/EXPANDED NA LINES   00011000
+         MVI   1(R4),C'N'          INIT RETURN CODE TO UNSUCCESSFUL     00011100
+         MVI   WKNA,C' '           INIT NAME/ADDR/MEMO WORK AREA        00011200
+         CLI   0(R4),C'C'          Q. IS THIS COMPRESSION               00011300
+         BNE   MLINIT              A. NO. EXPANSION USES BLANK-FILLED   00011400
+         MVI   WKNA,X'00'          A. YES. COMPRESSION USES NULL-FILLED 00011500
+MLINIT   EQU   *                                                        00011600
+         MVC   WKNA+1(256),WKNA                                         00011700
+         MVC   WKNA+257(209),WKNA                                       00011800
+         SR    R3,R3               INIT WORK REGISTERS                  00011900
+         SR    R7,R7               INIT WORK REGISTERS                  00012000
+         SR    R8,R8               INIT WORK REGISTERS                  00012100
+         SR    R9,R9               INIT WORK REGISTERS                  00012200
+*                                                                       00012300
+         CLI   0(R4),C'E'          Q. WANT TO EXPAND NAME/ADDR/MEMO     00012400
+         BE    MLEXPND             A. YES.                              00012500
+         CLI   0(R4),C'C'          Q. WANT TO COMPRESS NAME/ADDR/MEMO   00012600
+         BE    MLCOMPR             A. YES.                              00012700
+MLERROR  MVI   1(R4),C'N'          PERSONAL TABLE ERROR OR REOCCURING   00012800
+         B     MLEXIT              PERSONAL OR BUSINESS ERROR           00012900
+MLEXPND  EQU   *                   EXPAND NAME/ADDR/MEMO                00013000
+         MVC   HALF,0(R5)          LENGTH OF VARIABLE LINES             00013100
+         LH    R3,HALF                                                  00013200
+         LA    R10,2(R5)           POINT TO 1ST DATA ELEMENT LENGTH     00013300
+MLEXPLP  EQU   *                                                        00013400
+         CH    R3,=H'1'            Q. IS LENGTH LESS THAN 1             00013500
+         BL    MLEXPOK             A. YES. DONE.                        00013600
+         IC    R7,0(R10)           LENGTH OF 1ST DATA LINE              00013700
+         BCTR  R7,0                MAKE LENGTH RELATIVE TO ZERO         00013800
+         C     R7,=F'0'            Q. WAS LENGTH ZERO (OR LESS)         00013900
+         BL    MLEXPBMP            A. YES. TRY NEXT.                    00014000
+         STC   R7,MLMVCEXP+1       ALTER LENGTH OF MOVE TO EXPAND       00014100
+         CLI   1(R10),X'11'        Q. IS THIS NAME LINE 1               00014200
+         BNE   MLCK12              A. NO. TRY NEXT.                     00014300
+         LA    R11,WKNA1           A. YES. POINT TO PROPPER FIXED AREA  00014400
+         B     MLMVCEXP               AND GO MOVE IT                    00014500
+MLCK12   EQU   *                                                        00014600
+         CLI   1(R10),X'12'        Q. IS THIS NAME LINE 2               00014700
+         BNE   MLCK13              A. NO. TRY NEXT.                     00014800
+         LA    R11,WKNA2           A. YES. POINT TO PROPPER FIXED AREA  00014900
+         B     MLMVCEXP               AND GO MOVE IT                    00015000
+MLCK13   EQU   *                                                        00015100
+         CLI   1(R10),X'13'        Q. IS THIS NAME LINE 3               00015200
+         BNE   MLCK21              A. NO. TRY NEXT.                     00015300
+         LA    R11,WKNA3           A. YES. POINT TO PROPPER FIXED AREA  00015400
+         B     MLMVCEXP               AND GO MOVE IT                    00015500
+MLCK21   EQU   *                                                        00015600
+         CLI   1(R10),X'21'        Q. IS THIS ADDR LINE 1               00015700
+         BNE   MLCK22              A. NO. TRY NEXT.                     00015800
+         LA    R11,WKAD1           A. YES. POINT TO PROPPER FIXED AREA  00015900
+         B     MLMVCEXP               AND GO MOVE IT                    00016000
+MLCK22   EQU   *                                                        00016100
+         CLI   1(R10),X'22'        Q. IS THIS ADDR LINE 2               00016110
+         BNE   MLCK23              A. NO. TRY NEXT.                     00016120
+         LA    R11,WKAD2           A. YES. POINT TO PROPER FIXED AREA   00016130
+         B     MLMVCEXP               AND GO MOVE IT                    00016140
+MLCK23   EQU   *                                                        00016150
+         CLI   1(R10),X'23'        Q. IS THIS ADDL ADDR LINE 1          00016160
+         BNE   MLCK24              A. NO. TRY NEXT.                     00016170
+         LA    R11,WKAD3           A. YES. POINT TO PROPER FIXED AREA   00016180
+         B     MLMVCEXP               AND GO MOVE IT                    00016190
+MLCK24   EQU   *                                                        00016200
+         CLI   1(R10),X'24'        Q. IS THIS ADDL ADDR LINE 2          00016210
+         BNE   MLCK25              A. NO. TRY NEXT.                     00016220
+         LA    R11,WKAD4           A. YES. POINT TO PROPER FIXED AREA   00016230
+         B     MLMVCEXP               AND GO MOVE IT                    00016240
+MLCK25   EQU   *                                                        00016250
+         CLI   1(R10),X'25'        Q. IS THIS ADDL ADDR LINE 3          00016260
+         BNE   MLCK26              A. NO. TRY NEXT.                     00016270
+         LA    R11,WKAD5           A. YES. POINT TO PROPER FIXED AREA   00016280
+         B     MLMVCEXP               AND GO MOVE IT                    00016290
+MLCK26   EQU   *                                                        00016300
+         CLI   1(R10),X'26'        Q. IS THIS ADDL CITY                 00016310
+         BNE   MLCK27              A. NO. TRY NEXT.                     00016320
+         LA    R11,WKCITY          A. YES. POINT TO PROPER FIXED AREA   00016330
+         B     MLMVCEXP               AND GO MOVE IT                    00016340
+MLCK27   EQU   *                                                        00016350
+         CLI   1(R10),X'27'        Q. IS THIS ADDL ZIP/EXP DATE         00016360
+         BNE   MLCK31              A. NO. TRY NEXT.                     00016370
+         LA    R11,WKZIPEX         A. YES. POINT TO PROPER FIXED AREA   00016400
+         B     MLMVCEXP               AND GO MOVE IT                    00016500
+MLCK31   EQU   *                                                        00016600
+         CLI   1(R10),X'31'        Q. IS THIS CITY STATE                00016700
+         BNE   MLCK41              A. NO. TRY NEXT.                     00016800
+         LA    R11,WKCS            A. YES. POINT TO PROPPER FIXED AREA  00016900
+         B     MLMVCEXP               AND GO MOVE IT                    00017000
+MLCK41   EQU   *                                                        00017100
+         CLI   1(R10),X'41'        Q. IS THIS MEMO LINE 1               00017200
+         BNE   MLCK42              A. NO. TRY NEXT.                     00017300
+         LA    R11,WKMEM1          A. YES. POINT TO PROPPER FIXED AREA  00017400
+         B     MLMVCEXP               AND GO MOVE IT                    00017500
+MLCK42   EQU   *                                                        00017600
+         CLI   1(R10),X'42'        Q. IS THIS MEMO LINE 2               00017700
+         BNE   MLERROR             A. NO. ERROR.                        00017800
+         LA    R11,WKMEM2          A. YES. POINT TO PROPPER FIXED AREA  00017900
+*                                                                       00018000
+MLMVCEXP MVC   0(0,R11),2(R10)     MOVE VARIABLE TO FIXED AREA          00018100
+MLEXPBMP EQU   *                                                        00018200
+         IC    R8,0(R10)           DATA LINE LENGTH                     00018300
+         SR    R3,R8               SUBTRACT DATA LEN FROM TOTAL LEN     00018400
+         S     R3,=F'2'            SUBTRACT LEN OF 'LEN AND TYPE' BYTES 00018500
+         AR    R10,R7              ADD REL LENGTH OF DATA LINE (TO 0)   00018600
+         LA    R10,3(R10)            PLUS LEN AND TYPE BYTES + 1        00018700
+         B     MLEXPLP             GO PROCESS NEXT DATA LINE            00018800
+*                                                                       00018900
+MLEXPOK  EQU   *                                                        00019000
+         MVC   0(2,R6),=X'0132'    INIT EXPANDED LENGTH TO 306          00019100
+         MVI   1(R4),C'Y'          INDICATE GOOD EXPAND                 00019200
+*                                                                       00019300
+         B     MLRETURN            MOVE WKNA TO USER AREA AND RETURN    00019400
+*                                                                       00019500
+*********************************************************************** 00019600
+*  NAME/ADDR/MEMO COMPRESSION LOGIC                                     00019700
+*********************************************************************** 00019800
+*                                                                       00019900
+MLCOMPR  EQU   *                                                        00020000
+*                                                                       00020100
+         LA    R3,WKNA             OUTPUT COMPRESSED N/A                00020200
+         LA    R7,13               NBR OF DATA LINES POSSIBLE           00020300
+         LA    R8,WKNACD           COMPRESS LINE CODES                  00020400
+         LA    R12,2(R5)           INPUT EXPANDED DATA LINES            00020500
+         SR    R10,R10             TOTAL LENGTH BUCKET                  00020600
+MLCOMLP1 EQU   *                                                        00020700
+         LA    R11,30              MAX DATA LINE LENGTH                 00020800
+         LA    R9,29(R12)          LAST BYTE OF THIS LINE               00020900
+         CLI   0(R8),X'41'         Q. IS THIS A MEMO LINE               00021000
+         BL    MLCTSTB             A. NO. LENGTH AND POINTER OK         00021100
+         LA    R11,55              MAX MEMO DATA LINE LENGTH            00021200
+         LA    R9,54(R12)          LAST BYTE OF MEMO LINE               00021300
+MLCTSTB  EQU   *                                                        00021400
+         CLI   0(R9),C' '          Q. LAST NON-BLANK                    00021500
+         BNE   MLCHVLST            A. YES. GO CALC LENGTH               00021600
+         SH    R9,=H'1'            A. NO. BACKUP 1 BYTE                 00021700
+         BCT   R11,MLCTSTB           AND TRY AGAIN                      00021800
+MLCHVLST EQU   *                                                        00021900
+         C     R11,=F'1'           Q. LENGTH ZERO OR LESS               00022000
+         BL    MLCOMNXL            A. YES. LINE MUST BE BLANK           00022100
+         AR    R10,R11             INCREMENT TOTAL LENGTH               00022200
+         STC   R11,0(R3)           STORE LINE LENGTH                    00022300
+         MVC   1(1,R3),0(R8)         AND LINE CODE                      00022400
+         BCTR  R11,0               MAKE LINE LENGTH REL TO 0            00022500
+         STC   R11,MLMVCL1+1       ALTER MOVE LENGTH                    00022600
+         LA    R10,2(R10)          INCLUDE LENGTH AND TYPE BYTES IN LEN 00022700
+MLMVCL1  MVC   2(0,R3),0(R12)      MOVE DATA TO EXPANDED AREA           00022800
+         AR    R3,R11              POINT TO NEXT PLACE FOR COMPRESSED   00022900
+         LA    R3,3(R3)              LINE TO GO                         00023000
+MLCOMNXL EQU   *                                                        00023100
+         LA    R12,30(R12)         NEXT INPUT LINE                      00023200
+         CLI   0(R8),X'41'         Q. IS THIS A MEMO LINE               00023300
+         BL    MLNXTCOD            A. NO. POINTER OK.                   00023400
+         LA    R12,25(R12)         ALLOW FOR 25 MORE BYTES OF MEMO      00023500
+MLNXTCOD EQU   *                                                        00023600
+         LA    R8,1(R8)              AND ITS ASSOCIATED CODE            00023700
+         BCT   R7,MLCOMLP1                                              00023800
+         CH    R10,=H'0'           Q. IS COMPRESSED DATA GT ZERO        00023900
+         BH    MLCOMMVC            A. YES. OK.                          00024000
+         LA    R10,3               A. NO. SPECIFY 3 BYTES SINCE THE     00024100
+*                                     DEPENDING ON IN COBOL CANT BE 0   00024200
+         MVC   WKNA(3),=X'011140'     AND FORCE A BLANK NAME BYTE       00024300
+MLCOMMVC EQU   *                                                        00024400
+         STH   R10,HALF            TOTAL LINE LENGTH                    00024500
+         MVC   0(2,R6),HALF          AND MOVE TO USER AREA              00024600
+*                                                                       00024700
+MLRETURN EQU   *                                                        00024800
+         MVC   2(256,R6),WKNA      MOVE EITHER EXPANDED OR COMPRESSED   00024900
+         MVC   258(210,R6),WKNA+256   NAME/ADDR/MEMO BACK TO USER AREA  00025000
+*                                                                       00025100
+MLEXIT   EQU   *                                                        00025200
+         L     R13,SAVE13          RESTORE CALLER'S REGISTERS           00025300
+         XC    16(4,R13),16(R13)   CLEAR REG 15 (OS RETURN CODE)        00025310
+         RETURN (14,12)                                                 00025400
+         EJECT                                                          00025500
+*********************************************************************** 00025600
+*     W   O   R   K        F   I   E   L   D   S                      * 00025700
+*********************************************************************** 00025800
+*                                                                       00025900
+SAVE13   DS    F                   SAVE POINTER FOR CALLER'S REGISTERS  00026000
+HALF     DS    H                   WORK AREA FOR LENGTH CALCS           00026100
+WKNACD   DC    XL13'11121321222324252627314142' COMPRESS DATA LINE CODE 00026200
+WKINIT   DS    CL1                 INIT WKNA TO THIS VALUE              00026300
+*                                    IF EXPANDING C' ', COMPRESS X'00'  00026400
+WKNA     DS    0CL466              VARIABLE/FIXED N/A WORK AREA         00026500
+WKNA1    DS    CL30                NAME LINE 1                          00026600
+WKNA2    DS    CL30                NAME LINE 2                          00026700
+WKNA3    DS    CL30                NAME LINE 3                          00026800
+WKAD1    DS    CL30                ADDR LINE 1                          00026900
+WKAD2    DS    CL30                ADDR LINE 2                          00027000
+WKAD3    DS    CL30                ADDL ADDR LINE 1                     00027010
+WKAD4    DS    CL30                ADDL ADDR LINE 2                     00027020
+WKAD5    DS    CL30                ADDL ADDR LINE 3                     00027030
+WKCITY   DS    CL30                ADDL CITY                            00027040
+WKZIPEX  DS    CL30                ADDL ZIP/EXP DATE                    00027050
+WKCS     DS    CL30                CITY/STATE                           00027100
+WKMEM1   DS    CL55                MEMO LINE 1                          00027200
+WKMEM2   DS    CL55                MEMO LINE 2                          00027300
+         DS    CL26                ALLOW FOR 13 LENGTH AND CODE BYTES   00027400
+*                                                                       00027500
+         END                                                            00027600
+
